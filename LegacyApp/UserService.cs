@@ -1,4 +1,5 @@
-﻿using LegacyApp.DataAccess;
+﻿using LegacyApp.CreditLimitProviders;
+using LegacyApp.DataAccess;
 using LegacyApp.Models;
 using LegacyApp.Repositories;
 using LegacyApp.Services;
@@ -9,33 +10,33 @@ namespace LegacyApp;
 public class UserService
 {
     private readonly IClientRepository _clientRepository;
-    private readonly IUserCreditService _userCreditService;
     private readonly IUserDataAccess _userDataAccess;
+    private readonly ICreditLimitProviderFactory _creditLimitProviderFactory;
     private readonly UserValidator _userValidator;
 
     public UserService() : this(
+        new CreditLimitProviderFactory(new UserCreditServiceClient()),
         new ClientRepository(),
-        new UserCreditServiceClient(),
         new UserDataAccessProxy(),
         new UserValidator(new DateTimeService()))
     {
     }
 
     public UserService(
+        ICreditLimitProviderFactory creditLimitProviderFactory,
         IClientRepository clientRepository,
-        IUserCreditService userCreditService,
         IUserDataAccess userDataAccess,
         UserValidator userValidator)
     {
+        _creditLimitProviderFactory = creditLimitProviderFactory;
         _clientRepository = clientRepository;
-        _userCreditService = userCreditService;
         _userDataAccess = userDataAccess;
         _userValidator = userValidator;
     }
 
     public bool AddUser(string firstName, string lastName, string email, DateOnly dateOfBirth, int clientId)
     {
-        if (!UserProvidedDataIsValid(firstName, lastName,  email, dateOfBirth))
+        if (!UserProvidedDataIsValid(firstName, lastName, email, dateOfBirth))
         {
             return false;
         }
@@ -55,26 +56,7 @@ public class UserService
             LastName = lastName
         };
 
-        if (client.Name == "VeryImportantClient")
-        {
-            // Skip credit check
-            user.HasCreditLimit = false;
-        }
-        else if (client.Name == "ImportantClient")
-        {
-            // Do credit check and double credit limit
-            user.HasCreditLimit = true;
-            var creditLimit = _userCreditService.GetCreditLimit(user.FirstName, user.LastName, user.DateOfBirth);
-            creditLimit = creditLimit * 2;
-            user.CreditLimit = creditLimit;
-        }
-        else
-        {
-            // Do credit check
-            user.HasCreditLimit = true;
-            var creditLimit = _userCreditService.GetCreditLimit(user.FirstName, user.LastName, user.DateOfBirth);
-            user.CreditLimit = creditLimit;
-        }
+        ApplyCreditLimits(client, user);
 
         if (_userValidator.HasCreditLimitAndLimitIsLessThan500(user))
         {
@@ -84,6 +66,14 @@ public class UserService
         _userDataAccess.AddUser(user);
 
         return true;
+    }
+
+    private void ApplyCreditLimits(Client client, User user)
+    {
+        var creditLimitProvider = _creditLimitProviderFactory.GetProviderByClientName(client.Name);
+        var (hasCreditLimit, creditLimit) = creditLimitProvider.GetCreditLimits(user);
+        user.HasCreditLimit = hasCreditLimit;
+        user.CreditLimit = creditLimit;
     }
 
     private bool UserProvidedDataIsValid(string firstName, string lastName, string email, DateOnly dateOfBirth)
