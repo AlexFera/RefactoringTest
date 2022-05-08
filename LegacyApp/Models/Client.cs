@@ -2,9 +2,9 @@
 
 public class Client
 {
-    public int Id { get; internal set; }
+    public int Id { get; set; }
 
-    public string Name { get; internal set; } = default!;
+    public string Name { get; set; } = default!;
 
-    public ClientStatus ClientStatus { get; internal set; }
+    public ClientStatus ClientStatus { get; set; }
 }

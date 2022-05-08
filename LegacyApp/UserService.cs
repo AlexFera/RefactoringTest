@@ -57,7 +57,6 @@ public class UserService
         }
 
         var client = _clientRepository.GetById(clientId);
-
         if (client is null)
         {
             throw new Exception();
