@@ -4,6 +4,7 @@ using LegacyApp.DataAccess;
 using LegacyApp.Models;
 using LegacyApp.Repositories;
 using LegacyApp.Services;
+using LegacyApp.Validators;
 using NSubstitute;
 using System;
 using Xunit;
@@ -21,7 +22,7 @@ namespace LegacyApp.UnitTests
 
         public UserServiceTests()
         {
-            _sut = new UserService(_dateTimeService, _clientRepository, _userCreditService, _userDataAccess);
+            _sut = new UserService(_clientRepository, _userCreditService, _userDataAccess, new UserValidator(_dateTimeService));
         }
 
         [Fact]

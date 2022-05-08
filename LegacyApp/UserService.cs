@@ -2,56 +2,40 @@
 using LegacyApp.Models;
 using LegacyApp.Repositories;
 using LegacyApp.Services;
+using LegacyApp.Validators;
 
 namespace LegacyApp;
 
 public class UserService
 {
-    private readonly IDateTimeService _dateTimeService;
     private readonly IClientRepository _clientRepository;
     private readonly IUserCreditService _userCreditService;
     private readonly IUserDataAccess _userDataAccess;
+    private readonly UserValidator _userValidator;
 
     public UserService() : this(
-        new DateTimeService(),
         new ClientRepository(),
         new UserCreditServiceClient(),
-        new UserDataAccessProxy())
+        new UserDataAccessProxy(),
+        new UserValidator(new DateTimeService()))
     {
     }
 
     public UserService(
-        IDateTimeService dateTimeService,
         IClientRepository clientRepository,
         IUserCreditService userCreditService,
-        IUserDataAccess userDataAccess)
+        IUserDataAccess userDataAccess,
+        UserValidator userValidator)
     {
-        _dateTimeService = dateTimeService;
         _clientRepository = clientRepository;
         _userCreditService = userCreditService;
         _userDataAccess = userDataAccess;
+        _userValidator = userValidator;
     }
 
     public bool AddUser(string firstName, string lastName, string email, DateOnly dateOfBirth, int clientId)
     {
-        if (string.IsNullOrEmpty(firstName) || string.IsNullOrEmpty(lastName))
-        {
-            return false;
-        }
-
-        if (!email.Contains('@') && !email.Contains('.'))
-        {
-            return false;
-        }
-
-        var now = _dateTimeService.DateTimeNow;
-        var age = now.Year - dateOfBirth.Year;
-        if (now.Month < dateOfBirth.Month || (now.Month == dateOfBirth.Month && now.Day < dateOfBirth.Day))
-        {
-            age--;
-        }
-
-        if (age < 21)
+        if (!UserProvidedDataIsValid(firstName, lastName,  email, dateOfBirth))
         {
             return false;
         }
@@ -92,12 +76,32 @@ public class UserService
             user.CreditLimit = creditLimit;
         }
 
-        if (user.HasCreditLimit && user.CreditLimit < 500)
+        if (_userValidator.HasCreditLimitAndLimitIsLessThan500(user))
         {
             return false;
         }
 
         _userDataAccess.AddUser(user);
+
+        return true;
+    }
+
+    private bool UserProvidedDataIsValid(string firstName, string lastName, string email, DateOnly dateOfBirth)
+    {
+        if (!_userValidator.HasValidFullName(firstName, lastName))
+        {
+            return false;
+        }
+
+        if (!_userValidator.HasValidEmail(email))
+        {
+            return false;
+        }
+
+        if (!_userValidator.IsAtLeast21YearsOld(dateOfBirth))
+        {
+            return false;
+        }
 
         return true;
     }
