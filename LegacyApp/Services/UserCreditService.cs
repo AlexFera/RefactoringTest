@@ -1,6 +1,6 @@
 ﻿using System.ServiceModel;
 
-namespace LegacyApp;
+namespace LegacyApp.Services;
 
 [ServiceContract(Namespace = "http://Microsoft.ServiceModel.Samples")]
 public interface IUserCreditService
@@ -9,7 +9,7 @@ public interface IUserCreditService
     int GetCreditLimit(string firstName, string lastName, DateOnly dateOfBirth);
 }
 
-public partial class UserCreditServiceClient : System.ServiceModel.ClientBase<IUserCreditService>, IUserCreditService
+public partial class UserCreditServiceClient : ClientBase<IUserCreditService>, IUserCreditService
 {
     public UserCreditServiceClient()
     { }
@@ -23,17 +23,17 @@ public partial class UserCreditServiceClient : System.ServiceModel.ClientBase<IU
     { }
 
     public UserCreditServiceClient(string endpointConfigurationName,
-        System.ServiceModel.EndpointAddress remoteAddress) :
+        EndpointAddress remoteAddress) :
             base(endpointConfigurationName, remoteAddress)
     { }
 
     public UserCreditServiceClient(System.ServiceModel.Channels.Binding binding,
-        System.ServiceModel.EndpointAddress remoteAddress) :
+        EndpointAddress remoteAddress) :
             base(binding, remoteAddress)
     { }
 
     public int GetCreditLimit(string firstName, string lastName, DateOnly dateOfBirth)
     {
-        return base.Channel.GetCreditLimit(firstName, lastName, dateOfBirth);
+        return Channel.GetCreditLimit(firstName, lastName, dateOfBirth);
     }
 }

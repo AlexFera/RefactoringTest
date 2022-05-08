@@ -1,4 +1,9 @@
-﻿namespace LegacyApp;
+﻿using LegacyApp.DataAccess;
+using LegacyApp.Models;
+using LegacyApp.Repositories;
+using LegacyApp.Services;
+
+namespace LegacyApp;
 
 public class UserService
 {
